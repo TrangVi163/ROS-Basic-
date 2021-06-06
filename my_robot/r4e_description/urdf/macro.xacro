@@ -1,0 +1,167 @@
+<?xml version="1.0"?>
+<!-- 
+  we will use macros, which are like functions, to reduce the remaining code in r4e.xacro file.
+-->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+    <!--
+      we have defined two macros, their purpose is to take parameters and create the required element (link element).
+
+      The first macro is named link_wheel and it accepts only one parameter name. It creates a wheel link with the name passed in the parameter. 
+    -->
+    <xacro:macro name="link_wheel" params="name">
+        <link name="${name}">
+            <inertial>
+              <mass value="0.2"/>
+              <origin rpy="0 1.5707 1.5707" xyz="0 0 0"/>
+              <xacro:cylinder_inertia mass="0.2" r="0.03" l="0.025" /> 
+            </inertial>
+            <collision name="${name}_collision">
+              <origin rpy="0 1.5707 1.5707" xyz="0 0 0"/>
+              <geometry>
+                <cylinder length="0.025" radius="0.03"/>
+              </geometry>
+            </collision>
+            <visual name="${name}_visual">
+              <origin rpy="0 1.5707 1.5707" xyz="0 0 0"/>
+              <geometry>
+                <mesh filename="package://r4e_description/meshes/wheel_.dae" scale="1 1 1"/>
+              </geometry>
+            </visual>
+        </link>
+    </xacro:macro>
+    <!-- Motor-->
+    <xacro:macro name="link_motor" params="name">
+        <link name="${name}">.005
+          <inertial>.005
+            <mass value="0.3"/>.005
+            <origin rpy="0 1.5707 1.5707" xyz="0 0 0"/>
+            <xacro:cylinder_inertia mass="0.3" r="0.01" l="0.06" />
+          </inertial>
+          <collision name="${name}_collision">
+            <origin rpy="0 1.5707 1.5707" xyz="0 0 0"/>
+            <geometry>
+                <cylinder length="0.06" radius="0.01"/>
+            </geometry>
+          </collision>
+          <visual name="${name}_visual">
+            <origin rpy="0 1.5707 1.5707" xyz="0 0 0"/>
+            <geometry>
+              <cylinder length="0.06" radius="0.01"/>
+            </geometry>
+          </visual>
+        </link>
+    </xacro:macro>
+    <!-- joint link wheels-->
+     <xacro:macro name="joint_wheel" params="name child parent origin_xyz">
+      <joint name="${name}" type="continuous">
+        <origin rpy="0 0 0" xyz="${origin_xyz}"/>
+        <child link="${child}"/>
+        <parent link="${parent}"/>
+        <axis rpy="0 0 0" xyz="0 1 0"/>
+        <limit effort="100" velocity="100"/>
+        <joint_properties damping="0.5" friction="0.5"/>
+      </joint>
+    </xacro:macro>
+<!-- joint link Motor-->
+   <xacro:macro name="joint_motor" params="name child origin_xyz">
+      <joint name="${name}" type="fixed">
+        <origin rpy="0 0 0" xyz="${origin_xyz}"/>
+        <child link="${child}"/>
+        <parent link="link_chassis"/>
+      </joint>
+    </xacro:macro>
+    
+ <!-- inertia of the cylinder  -->
+    <xacro:macro name="cylinder_inertia" params="mass r l"> 
+      <inertia ixx="${mass*(3*r*r+l*l)/12}" ixy = "0" ixz = "0" iyy="${mass*(3*r*r+l*l)/12}" iyz = "0" izz="${mass*(r*r)/2}" /> <!--izz="${mass*(r*r)/2}" -->
+    </xacro:macro>
+<!-- inertia of sphere-->
+    <xacro:macro name="sphere_inertia" params="mass r"> 
+      <inertia ixx="${(2*mass*r*r)/5}" ixy = "0" ixz = "0" iyy="${(2*mass*r*r)/5}" iyz = "0" izz="${(2*mass*r*r)/5}" /> <!--izz="${-(2*mass*r*r)/3}"-->
+    </xacro:macro>
+<!--inertia of box-->
+    <xacro:macro name="box_inertia" params="mass w d h"> 
+     
+      <inertia ixx="${mass*(h*h+w*w)/12}" ixy = "0" ixz = "0" iyy="${mass*(h*h+d*d)/12}" iyz = "0" izz="${mass*(w*w+d*d)/12}" /> <!--izz="${-mass*(h*h+w*w)/12}"-->
+    </xacro:macro>
+<!-- Link sensor -->
+    <xacro:macro name="link_sonar" params="name">
+        <link name="${name}">
+          <collision name="${name}_collision">
+            <origin rpy="0 0 0" xyz="0 0 0"/>
+            <geometry>
+              <box size="0.015 0.045 0.02"/>
+            </geometry>
+          </collision>
+          <visual name="${name}_visual">
+            <origin rpy="0 0 0" xyz="0 0 0"/>
+            <geometry>
+              <mesh filename="package://r4e_description/meshes/sonar.dae" scale="1 1 1"/>
+            </geometry>
+          </visual>
+        </link>
+    </xacro:macro>
+    <!-- Joint link sensor -->
+    <xacro:macro name="joint_sonar" params="name child origin_rpy origin_xyz">
+      <joint name="${name}" type="fixed">
+        <origin rpy="${origin_rpy}" xyz="${origin_xyz}"/>
+        <child link="${child}"/>
+        <parent link="link_chassis"/>
+      </joint>
+    </xacro:macro>
+    <!-- Plugin Sonar -->
+    <xacro:macro name="plugin_sonar" params="name_link">
+      <gazebo reference="${name_link}">
+        <sensor type="ray" name="sonar">
+          <pose> 0 0 0 0 0 0 </pose>
+          <visualize> true </visualize>
+          <update_rate>9.3 </update_rate>
+          <ray> 
+            <scan> 
+              <horizontal>
+               <samples>1</samples>
+               <resolution>1.0</resolution> 
+               <min_angle>-0.15</min_angle>
+               <max_angle>0.15</max_angle>
+              </horizontal>
+<!--              <vertical> 
+               <samples>5</samples>
+               <resolution>1</resolution> 
+               <min_angle>-0.25</min_angle>
+               <max_angle>0.25</max_angle>
+              </vertical>
+-->
+            </scan>
+            <range> 
+              <min>0.02</min>
+              <max>2</max>
+              <resolution>0.003</resolution>
+            </range>
+          </ray>
+          <plugin filename="libgazebo_ros_range.so" name="gazebo_ros_range">
+            <gaussianNoise>0.005</gaussianNoise>
+            <alwaysOn>true</alwaysOn>
+            <updateRate>9.3</updateRate>
+            <topicName>/robot/sonar_sensor/${name_link}</topicName>
+            <frameName>${name_link}</frameName>
+            <fov>0.26</fov>
+            <radiation>ultrasound</radiation>
+            <fov>0.5</fov>
+          </plugin>
+        </sensor>
+      </gazebo>
+    </xacro:macro>
+    <!-- 
+    Laser gazebo plugin: sensor behaviour to the link
+
+    Update rate : Controls how often (how fast) the laser data is captured (Hz)
+    samples : Defines how how many readings are contained in one scan
+    resolution : Defines the minimum angular distance between readings captured in a laser scan
+    range : Defines the minimum sense distance and maximum sense distance. If a point is below minimum sense its reading becomes zero(0) and if a point is further than the maximum sense distance its reading becomes inf. The range resolution defines the minimum distance between 2 points such that two points can be resolved as two separate points.
+    noise : This parameter lets us add gaussian noise to the range data captured by the sensor
+    topicName : Defines the name which is used for publishing the laser data
+    frameName : Defines the link to which the plugin has to be applied
+
+    see: http://gazebosim.org/tutorials?tut=ros_gzplugins#GPULaser for more information
+  -->
+</robot>
